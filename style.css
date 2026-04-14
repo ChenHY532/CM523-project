@@ -1,0 +1,204 @@
+:root {
+    --bg-color: #000000;
+    --default-accent: #ffffff;
+    --transition-speed: 0.4s;
+}
+
+body {
+    margin: 0;
+    padding: 0;
+    background-color: var(--bg-color);
+    overflow: hidden; /* 禁用滚动条，由镜头跟随逻辑控制 */
+    color: #fff;
+    font-family: 'Helvetica Neue', Helvetica, sans-serif;
+}
+
+/* ==========================================
+   1. 开场引导遮罩层 (完美还原截图视觉) 
+   ========================================== */
+#intro-overlay {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100vw; height: 100vh;
+    /* 采用更通透的深色遮罩，完美透出底部的巨大英文背景 */
+    background-color: rgba(15, 15, 15, 0.75); 
+    z-index: 1000; /* 位于最顶层 */
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    padding: 10vw;
+    box-sizing: border-box;
+    /* 加入背景模糊效果(可选)，让前景文字更清晰 */
+    backdrop-filter: blur(2px); 
+    transition: opacity var(--transition-speed) ease;
+}
+
+#intro-overlay h1 {
+    font-size: 4rem; /* 匹配截图中的大字号 */
+    margin-top: 0;
+    margin-bottom: 1.5rem;
+    letter-spacing: -1px;
+    font-weight: 900;
+    text-transform: uppercase;
+}
+
+#intro-overlay .subtitle {
+    font-size: 1.1rem;
+    color: #d0d0d0; /* 截图中的浅灰色 */
+    margin-bottom: 2.5rem;
+    max-width: 600px;
+}
+
+#intro-overlay .controls-guide {
+    font-family: monospace;
+    border: 1px solid rgba(255, 255, 255, 0.15); /* 截图中的极细半透明边框 */
+    padding: 12px 30px;
+    border-radius: 6px; /* 微圆角 */
+    background-color: rgba(0, 0, 0, 0.6); /* 深邃的底色 */
+    font-size: 0.95rem;
+    margin-bottom: 4rem;
+    letter-spacing: 0.5px;
+}
+
+#intro-overlay .start-prompt {
+    font-size: 0.85rem;
+    color: #666;
+    letter-spacing: 2px;
+}
+
+/* ==========================================
+   2. 背景信息层 (局内大字报，保持不变) 
+   ========================================== */
+#background-layer {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    z-index: -1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: flex-start; /* 强制内容靠左对齐 */
+    padding: 0 5vw; /* 增加左侧留白 */
+    box-sizing: border-box;
+    opacity: 0.15; /* 初始状态微调，确保开场时可见 */
+    transition: opacity var(--transition-speed) ease;
+    pointer-events: none;
+}
+
+#bg-meta {
+    font-family: monospace;
+    font-size: 1.2rem;
+    letter-spacing: 0.2em;
+    margin-bottom: 1rem;
+}
+
+#bg-title {
+    text-align: left;
+    font-size: clamp(3rem, 10vw, 8rem);
+    font-weight: 800;
+    line-height: 0.9;
+    text-transform: uppercase;
+    margin: 0;
+}
+
+#bg-summary {
+    font-size: 1.5rem;
+    max-width: 600px;
+    margin-top: 2rem;
+    border-left: 5px solid;
+    padding-left: 20px;
+}
+
+/* 阅读模式激活 */
+body.reading-mode #background-layer {
+    opacity: 1;
+}
+
+/* ==========================================
+   3. 前景游戏层 (物理互动，保持不变) 
+   ========================================== */
+#game-world {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    z-index: 10;
+}
+
+/* 玩家小球 */
+.character {
+    position: absolute;
+    width: 40px; height: 40px;
+    background: #fff;
+    border-radius: 50%;
+    box-shadow: 0 0 15px rgba(255,255,255,0.8);
+    transform: translate(-50%, -50%); /* 居中锚点 */
+}
+
+/* 游戏内部文字标签样式（Monospace，小字体，居中显示） */
+.label-text {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: monospace;
+    font-size: 12px;
+    color: #666;
+    transition: color 0.2s;
+}
+
+/* 普通新闻方块 */
+.platform {
+    position: absolute;
+    background: #222;
+    border: 1px solid #444;
+    transition: background 0.2s;
+    box-sizing: border-box;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* 激活状态 */
+.platform.active {
+    background: var(--active-color);
+    border-color: #fff;
+    box-shadow: 0 0 25px var(--active-color);
+}
+
+/* 激活时的文字反色 */
+.platform.active .label-text {
+    color: #000;
+}
+
+/* 假新闻的故障效果：Margin 抖动 + Hue 旋转 (绝对禁止使用 transform) */
+.platform.fake {
+    animation: glitch-jitter 1.5s infinite;
+}
+
+@keyframes glitch-jitter {
+    0% { filter: hue-rotate(0deg) contrast(100%); margin: 0; }
+    10% { margin-left: -3px; margin-top: 2px; filter: hue-rotate(90deg) invert(0.2); box-shadow: 2px 0 0 red; }
+    15% { margin-left: 2px; margin-top: -1px; filter: hue-rotate(180deg); box-shadow: -2px 0 0 blue; }
+    20% { filter: hue-rotate(0deg) contrast(100%); margin: 0; box-shadow: none; }
+    100% { margin: 0; }
+}
+
+/* 破碎动画：Blur 消失 + 四角粒子阴影 */
+.platform.shatter {
+    pointer-events: none;
+    transition: all 0.3s cubic-bezier(0.1, 1, 0.1, 1);
+    opacity: 0 !important;
+    filter: blur(10px);
+    box-shadow: 
+        -30px -30px 10px red, 
+        30px 30px 10px red, 
+        30px -30px 10px red, 
+        -30px 30px 10px red;
+}
+
+/* 重踩视觉特效：亮橙色外发光 */
+.character.stomping {
+    box-shadow: 0 0 40px #ffa502;
+    filter: brightness(1.5);
+}
