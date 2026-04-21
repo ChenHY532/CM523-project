@@ -202,3 +202,35 @@ body.reading-mode #background-layer {
     box-shadow: 0 0 40px #ffa502;
     filter: brightness(1.5);
 }
+
+/* 评分显示 */
+#score-display {
+    position: fixed;
+    top: 20px;
+    left: 30px;
+    font-family: 'Helvetica Neue', Helvetica, sans-serif;
+    font-size: 2rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    color: #fff;
+    z-index: 500;
+    letter-spacing: 3px;
+    text-shadow: 0 0 15px rgba(255, 255, 255, 0.4);
+    pointer-events: none;
+}
+
+/* 得分浮动弹出 */
+.score-popup {
+    position: absolute;
+    font-family: monospace;
+    font-size: 1.1rem;
+    font-weight: 700;
+    pointer-events: none;
+    animation: score-float 0.8s ease-out forwards;
+    z-index: 50;
+}
+
+@keyframes score-float {
+    0%   { opacity: 1; transform: translateY(0); }
+    100% { opacity: 0; transform: translateY(-60px); }
+}

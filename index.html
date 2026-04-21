@@ -3,20 +3,21 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Ephemeral Feeds</title>
+    <title>Ephemeral Feeds - 瞬息流</title>
     
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.19.0/matter.min.js"></script>    
+    <script src="https://cdn.bootcdn.net/ajax/libs/matter-js/0.19.0/matter.min.js"></script>
+    
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
     <div id="intro-overlay">
         <h1>EPHEMERAL FEEDS</h1>
-        <p class="subtitle">Information is but fleeting smoke—never look back. Discern truth from falsehood; shatter the lies.</p>
+        <p class="subtitle">信息如过眼云烟，永远不要回头。识别真伪，击碎谎言。</p>
         <div class="controls-guide">
-            [WASD] / [←↑↓→] Move &nbsp;&bull;&nbsp; [SPACE] Jump  &nbsp;&bull;&nbsp; [S] / [↓] Crushed by a Heavy Stomp
+            自动前进 &nbsp;&bull;&nbsp; [A] / [←] 后退 &nbsp;&bull;&nbsp; [SPACE] 跳跃 (单次) &nbsp;&bull;&nbsp; [S] / [↓] 重踩破碎
         </div>
-        <p class="start-prompt">Press any key to start</p>
+        <p class="start-prompt">按下任意键开始您的旅程</p>
     </div>
 
     <div id="background-layer">
@@ -25,6 +26,8 @@
         <div id="bg-summary">
             </div>
     </div>
+
+    <div id="score-display">0</div>
 
     <div id="game-world">
         <div id="player" class="character"></div>

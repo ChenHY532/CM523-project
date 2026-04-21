@@ -1,6 +1,7 @@
 // ==========================================
 // 1. 数据源与配置 (Data & Config)
 // ==========================================
+
 const NEWS_SOURCE = [
     { cat: 'ECONOMY', title: "MARKET VOLATILITY SPIKES", summary: "Crypto assets plummeted 20% overnight following new regulatory announcements.", color: "#ffa502", isFake: false },
     { cat: 'ENV', title: "ICE SHELF COLLAPSE IMMINENT", summary: "Satellite imagery confirms the structural failure of the western shelf is accelerating.", color: "#ffffff", isFake: false },
@@ -11,14 +12,18 @@ const NEWS_SOURCE = [
     { cat: 'AD', title: "EARN $5000 A DAY FROM HOME", summary: "Click here to discover the secret the government is hiding from you.", color: "#ff0000", isFake: true }
 ];
 
+
 const state = {
     platforms: [],
     lastX: 100,
     keys: {},
     gameStarted: false,
-    isStomping: false, // 记录是否正在重踩
-    spacePressed: false, // 新增：记录空格是否已被按下
-    shouldJump: false    // 新增：跳跃指令指令
+    isStomping: false,   // 记录是否正在重踩
+    stompLocked: false,  // 踩碎后锁定，松开 S/↓ 才解锁，防止弹跳中途意外重触
+    isRespawning: false, // 重生下落阶段，禁止自动前进
+    spacePressed: false,
+    shouldJump: false,
+    score: 0
 };
 
 // DOM 元素缓存
@@ -29,7 +34,8 @@ const dom = {
     bgLayer: document.getElementById('background-layer'),
     bgMeta: document.getElementById('bg-meta'),
     bgTitle: document.getElementById('bg-title'),
-    bgSummary: document.getElementById('bg-summary')
+    bgSummary: document.getElementById('bg-summary'),
+    scoreEl: document.getElementById('score-display')
 };
 
 // ==========================================
@@ -127,16 +133,21 @@ Events.on(engine, 'collisionStart', (event) => {
         if (other.label === 'platform') {
             const pObj = state.platforms.find(p => p.body === other);
             if (!pObj || pObj.destroyed) return;
+            state.isRespawning = false; // 落到任意平台即结束重生状态，恢复自动前进
 
             const isFakeNews = pObj.body.plugin.data.isFake;
 
-            // 机制 A：玩家正在执行“重踩”
+            // 机制 A：玩家正在执行”重踩”
             if (state.isStomping) {
                 if (isFakeNews) {
                     // 成功：踩碎假新闻
                     triggerShatter(pObj);
                     // 给予向上弹力奖励
                     Body.setVelocity(playerBody, { x: playerBody.velocity.x, y: -15 });
+                    // 清除重踩状态并锁定，必须松开 S/↓ 键才能再次重踩
+                    state.isStomping = false;
+                    state.stompLocked = true;
+                    dom.player.classList.remove('stomping');
                 } else {
                     // 惩罚：误踩真新闻（简单震动反馈，取消弹力）
                     pObj.dom.style.transform += ' translateY(10px)';
@@ -164,13 +175,28 @@ Events.on(engine, 'collisionEnd', (event) => {
         const other = pair.bodyA.label === 'player' ? pair.bodyB : pair.bodyA;
         if (other.label === 'platform') {
             const pObj = state.platforms.find(p => p.body === other);
-            // 离开后，平台崩塌（过眼云烟机制）
-            if (pObj && pObj.active && !pObj.destroyed) {
+            // 离开后触发衰减；triggerDecay 内部已处理 active 状态判断加分
+            // 不依赖 pObj.active，避免重踩路径下平台永不消失
+            if (pObj && !pObj.destroyed) {
                 setTimeout(() => triggerDecay(pObj), 150);
             }
         }
     });
 });
+
+// --- 评分系统 ---
+function addScore(delta) {
+    state.score += delta;
+    dom.scoreEl.textContent = state.score;
+
+    const popup = document.createElement('div');
+    popup.className = 'score-popup';
+    popup.textContent = delta > 0 ? `+${delta}` : `${delta}`;
+    popup.style.color = delta < 0 ? '#ff4757' : delta >= 2 ? '#ffa502' : '#ffffff';
+    popup.style.transform = `translate(${playerBody.position.x - 15}px, ${playerBody.position.y - 50}px)`;
+    dom.world.appendChild(popup);
+    setTimeout(() => popup.remove(), 800);
+}
 
 // --- 视觉更新函数 ---
 function updateBackground(data) {
@@ -192,6 +218,7 @@ function triggerShatter(pObj) {
     Composite.remove(world, pObj.body); // 移除物理实体
     pObj.dom.classList.add('shatter');  // 触发碎裂 CSS
     setTimeout(() => pObj.dom.remove(), 500);
+    addScore(2); // 踩碎假新闻 +2
 }
 
 function triggerCorruption(pObj) {
@@ -203,6 +230,7 @@ function triggerCorruption(pObj) {
 
 function triggerDecay(pObj) {
     if (pObj.destroyed) return;
+    if (pObj.active) addScore(1); // 跳过真新闻平台 +1
     pObj.destroyed = true;
     pObj.active = false;
     
@@ -227,6 +255,7 @@ window.addEventListener('keydown', (e) => {
         state.gameStarted = true;
         dom.intro.style.opacity = '0';
         setTimeout(() => dom.intro.style.display = 'none', 500);
+        return; // 开始那一帧不注册任何按键，避免触发游戏动作
     }
     if (e.code === 'Space' && !state.spacePressed) {
         state.spacePressed = true;
@@ -236,7 +265,10 @@ window.addEventListener('keydown', (e) => {
 });
 window.addEventListener('keyup', (e) => {
     if (e.code === 'Space') {
-        state.spacePressed = false; // 松开后解锁，允许下一次跳跃
+        state.spacePressed = false;
+    }
+    if (e.code === 'KeyS' || e.code === 'ArrowDown') {
+        state.stompLocked = false; // 松开重踩键才解锁，允许下一次重踩
     }
     state.keys[e.code] = false;
 });
@@ -253,11 +285,12 @@ function gameLoop() {
     const speed = 7;
     const jumpForce = 14;
 
-    // A. 左右移动
-    if (state.keys['KeyA'] || state.keys['ArrowLeft']) {
-        Body.setVelocity(playerBody, { x: -speed, y: playerBody.velocity.y });
-    } else if (state.keys['KeyD'] || state.keys['ArrowRight']) {
-        Body.setVelocity(playerBody, { x: speed, y: playerBody.velocity.y });
+    // A. 移动：默认自动向右，左键可反向；重生下落阶段锁定 x 不移动
+    // 只直接写 x 轴，不调用 setVelocity，避免同时覆盖 positionPrev.y 干扰 y 轴 Verlet 积分
+    if (!state.isRespawning) {
+        const targetVX = (state.keys['KeyA'] || state.keys['ArrowLeft']) ? -speed : speed;
+        playerBody.velocity.x = targetVX;
+        playerBody.positionPrev.x = playerBody.position.x - targetVX;
     }
 
     // B. 跳跃
@@ -272,7 +305,7 @@ function gameLoop() {
     // C. 重踩 (Stomp) - 新增机制
     if (state.keys['KeyS'] || state.keys['ArrowDown']) {
         // 只有在空中且没有正在重踩时触发
-        if (Math.abs(playerBody.velocity.y) > 0.5 && !state.isStomping) {
+        if (playerBody.velocity.y > 0.5 && !state.isStomping && !state.stompLocked) {
             Body.setVelocity(playerBody, { x: 0, y: 25 }); // 极速下坠
             state.isStomping = true;
             dom.player.classList.add('stomping'); // 添加视觉拖影
@@ -313,6 +346,8 @@ function gameLoop() {
         
         Body.setPosition(playerBody, { x: respawnX, y: 0 });
         Body.setVelocity(playerBody, { x: 0, y: 0 });
+        state.isRespawning = true;
+        addScore(-2); // 掉落扣 2 分
         
         document.body.classList.remove('reading-mode');
         state.isStomping = false;
