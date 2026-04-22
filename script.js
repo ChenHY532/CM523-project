@@ -23,6 +23,7 @@ const state = {
     isRespawning: false, // 重生下落阶段，禁止自动前进
     spacePressed: false,
     shouldJump: false,
+    stompQueued: false,  // 触屏双击排队的重踩，等玩家下落时触发
     score: 0
 };
 
@@ -149,8 +150,14 @@ Events.on(engine, 'collisionStart', (event) => {
                     state.stompLocked = true;
                     dom.player.classList.remove('stomping');
                 } else {
-                    // 惩罚：误踩真新闻（简单震动反馈，取消弹力）
-                    pObj.dom.style.transform += ' translateY(10px)';
+                    // 惩罚：误踩真新闻，平台碎裂但不给弹力
+                    pObj.destroyed = true;
+                    Composite.remove(world, pObj.body);
+                    pObj.dom.classList.add('shatter');
+                    setTimeout(() => pObj.dom.remove(), 500);
+                    state.isStomping = false;
+                    state.stompLocked = true;
+                    dom.player.classList.remove('stomping');
                 }
             } 
             // 机制 B：玩家正常降落
@@ -273,6 +280,42 @@ window.addEventListener('keyup', (e) => {
     state.keys[e.code] = false;
 });
 
+// ==========================================
+// 触屏支持 (Mobile Touch)
+// ==========================================
+let lastTapTime = 0;
+let tapTimer = null;
+const DOUBLE_TAP_MS = 280;
+
+document.addEventListener('touchstart', (e) => {
+    e.preventDefault();
+    if (!state.gameStarted) {
+        state.gameStarted = true;
+        dom.intro.style.opacity = '0';
+        setTimeout(() => dom.intro.style.display = 'none', 500);
+        return;
+    }
+    const now = Date.now();
+    if (now - lastTapTime < DOUBLE_TAP_MS) {
+        // 双击 → 重踩（或跳跃后排队重踩）
+        clearTimeout(tapTimer);
+        lastTapTime = 0;
+        if (playerBody.velocity.y > 0.5 && !state.isStomping && !state.stompLocked) {
+            Body.setVelocity(playerBody, { x: 0, y: 25 });
+            state.isStomping = true;
+            dom.player.classList.add('stomping');
+        } else if (!state.stompLocked) {
+            // 在地面或上升中：先跳，落下时自动重踩
+            state.shouldJump = true;
+            state.stompQueued = true;
+        }
+    } else {
+        // 单击 → 跳跃（等待确认不是双击的第一下）
+        lastTapTime = now;
+        tapTimer = setTimeout(() => { state.shouldJump = true; }, DOUBLE_TAP_MS);
+    }
+}, { passive: false });
+
 const runner = Runner.create();
 Runner.run(runner, engine);
 
@@ -288,9 +331,8 @@ function gameLoop() {
     // A. 移动：默认自动向右，左键可反向；重生下落阶段锁定 x 不移动
     // 只直接写 x 轴，不调用 setVelocity，避免同时覆盖 positionPrev.y 干扰 y 轴 Verlet 积分
     if (!state.isRespawning) {
-        const targetVX = (state.keys['KeyA'] || state.keys['ArrowLeft']) ? -speed : speed;
-        playerBody.velocity.x = targetVX;
-        playerBody.positionPrev.x = playerBody.position.x - targetVX;
+        playerBody.velocity.x = speed;
+        playerBody.positionPrev.x = playerBody.position.x - speed;
     }
 
     // B. 跳跃
@@ -313,7 +355,17 @@ function gameLoop() {
     } else if (Math.abs(playerBody.velocity.y) < 0.1) {
         // 落地后恢复状态
         state.isStomping = false;
+        state.stompLocked = false; // 落地即解锁（覆盖触屏路径，无需等待抬键）
+        state.stompQueued = false;
         dom.player.classList.remove('stomping');
+    }
+
+    // 消费触屏排队的重踩（双击后在下落途中自动触发）
+    if (state.stompQueued && playerBody.velocity.y > 0.5 && !state.isStomping && !state.stompLocked) {
+        Body.setVelocity(playerBody, { x: 0, y: 25 });
+        state.isStomping = true;
+        state.stompQueued = false;
+        dom.player.classList.add('stomping');
     }
 
     // 同步玩家 DOM (注意 Matter.js 坐标是中心，CSS 也需要 transform(-50%, -50%))

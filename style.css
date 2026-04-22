@@ -9,6 +9,8 @@ body {
     padding: 0;
     background-color: var(--bg-color);
     overflow: hidden; /* 禁用滚动条，由镜头跟随逻辑控制 */
+    touch-action: none;  /* 阻止触屏默认滚动/缩放 */
+    user-select: none;   /* 阻止长按选中文字 */
     color: #fff;
     font-family: 'Helvetica Neue', Helvetica, sans-serif;
 }
@@ -233,4 +235,16 @@ body.reading-mode #background-layer {
 @keyframes score-float {
     0%   { opacity: 1; transform: translateY(0); }
     100% { opacity: 0; transform: translateY(-60px); }
+}
+
+/* ==========================================
+   手机端适配 (Mobile)
+   ========================================== */
+@media (max-width: 600px) {
+    #intro-overlay h1 { font-size: 2.5rem; }
+    #intro-overlay .subtitle { font-size: 0.95rem; }
+    #intro-overlay .controls-guide { font-size: 0.8rem; padding: 10px 18px; }
+    #bg-title { font-size: clamp(2rem, 8vw, 5rem); }
+    #bg-summary { font-size: 1.1rem; }
+    #score-display { font-size: 1.4rem; top: 14px; left: 18px; }
 }
