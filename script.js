@@ -23,7 +23,6 @@ const state = {
     isRespawning: false, // 重生下落阶段，禁止自动前进
     spacePressed: false,
     shouldJump: false,
-    stompQueued: false,  // 触屏双击排队的重踩，等玩家下落时触发
     score: 0
 };
 
@@ -283,9 +282,6 @@ window.addEventListener('keyup', (e) => {
 // ==========================================
 // 触屏支持 (Mobile Touch)
 // ==========================================
-let lastTapTime = 0;
-const SECOND_TAP_MS = 400;
-
 document.addEventListener('touchstart', (e) => {
     e.preventDefault();
     if (!state.gameStarted) {
@@ -294,21 +290,12 @@ document.addEventListener('touchstart', (e) => {
         setTimeout(() => dom.intro.style.display = 'none', 500);
         return;
     }
-    const now = Date.now();
-    if (now - lastTapTime < SECOND_TAP_MS) {
-        // 第二下点击 → 重踩
-        lastTapTime = 0;
-        if (playerBody.velocity.y > 0.5 && !state.isStomping && !state.stompLocked) {
-            Body.setVelocity(playerBody, { x: 0, y: 25 });
-            state.isStomping = true;
-            dom.player.classList.add('stomping');
-        } else if (!state.stompLocked) {
-            state.stompQueued = true; // 还在上升中，排队等下落时触发
-        }
-    } else {
-        // 第一下点击 → 立即跳跃，无延迟
-        lastTapTime = now;
-        state.shouldJump = true;
+    // 跳跃与重踩条件天然互斥，物理状态决定哪个生效，无需计时器
+    state.shouldJump = true; // 落地时有效（游戏循环中有 velocity.y ≈ 0 守卫）
+    if (Math.abs(playerBody.velocity.y) > 0.1 && !state.isStomping && !state.stompLocked) {
+        Body.setVelocity(playerBody, { x: 0, y: 25 }); // 下落时有效
+        state.isStomping = true;
+        dom.player.classList.add('stomping');
     }
 }, { passive: false });
 
@@ -343,7 +330,7 @@ function gameLoop() {
     // C. 重踩 (Stomp) - 新增机制
     if (state.keys['KeyS'] || state.keys['ArrowDown']) {
         // 只有在空中且没有正在重踩时触发
-        if (playerBody.velocity.y > 0.5 && !state.isStomping && !state.stompLocked) {
+        if (Math.abs(playerBody.velocity.y) > 0.1 && !state.isStomping && !state.stompLocked) {
             Body.setVelocity(playerBody, { x: 0, y: 25 }); // 极速下坠
             state.isStomping = true;
             dom.player.classList.add('stomping'); // 添加视觉拖影
@@ -352,16 +339,7 @@ function gameLoop() {
         // 落地后恢复状态
         state.isStomping = false;
         state.stompLocked = false; // 落地即解锁（覆盖触屏路径，无需等待抬键）
-        state.stompQueued = false;
         dom.player.classList.remove('stomping');
-    }
-
-    // 消费触屏排队的重踩（双击后在下落途中自动触发）
-    if (state.stompQueued && playerBody.velocity.y > 0.5 && !state.isStomping && !state.stompLocked) {
-        Body.setVelocity(playerBody, { x: 0, y: 25 });
-        state.isStomping = true;
-        state.stompQueued = false;
-        dom.player.classList.add('stomping');
     }
 
     // 同步玩家 DOM (注意 Matter.js 坐标是中心，CSS 也需要 transform(-50%, -50%))
