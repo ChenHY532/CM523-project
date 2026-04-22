@@ -6,7 +6,7 @@ const NEWS_SOURCE = [
     { cat: 'ECONOMY', title: "MARKET VOLATILITY SPIKES", summary: "Crypto assets plummeted 20% overnight following new regulatory announcements.", color: "#ffa502", isFake: false },
     { cat: 'ENV', title: "ICE SHELF COLLAPSE IMMINENT", summary: "Satellite imagery confirms the structural failure of the western shelf is accelerating.", color: "#ffffff", isFake: false },
     { cat: 'TECH', title: "AI ACHIEVES NEW REASONING", summary: "Latest benchmark tests show synthetic intelligence surpassing human capabilities.", color: "#2ed573", isFake: false },
-    { cat: 'POLITICS', title: "GLOBAL SUMMIT ENDS IN SILENCE", summary: "Leaders failed to reach a consensus, leaving the future uncertain.", color: "#ff4757", isFake: false },
+    { cat: 'POLITICS', title: "GLOBAL SUMMIT ENDS IN SILENCE", summary: "Leaders failed to reach a consensus, leaving the future uncertain.", color: "#a29bfe", isFake: false },
     // 假新闻数据 (isFake: true)
     { cat: 'UNKNOWN', title: "ALIENS LAND IN NEW YORK", summary: "Trust me bro, I saw it on TikTok.", color: "#ff0000", isFake: true },
     { cat: 'AD', title: "EARN $5000 A DAY FROM HOME", summary: "Click here to discover the secret the government is hiding from you.", color: "#ff0000", isFake: true }
@@ -256,26 +256,46 @@ function triggerDecay(pObj) {
 // ==========================================
 // 5. 输入处理与主循环 (Input & Game Loop)
 // ==========================================
+// 腾空双击（键盘/触屏共用）：记录腾空中第一次按下的时间
+let airPressTime = 0;
+const AIR_DOUBLE_MS = 350;
+
+function tryStompDoublePress() {
+    if (!state.isStomping && !state.stompLocked) {
+        const now = Date.now();
+        if (airPressTime > 0 && now - airPressTime < AIR_DOUBLE_MS) {
+            // 第二击 → 触发重踩
+            airPressTime = 0;
+            Body.setVelocity(playerBody, { x: 0, y: 25 });
+            state.isStomping = true;
+            dom.player.classList.add('stomping');
+        } else {
+            // 第一击 → 记录时间，等待第二击
+            airPressTime = now;
+        }
+    }
+}
+
 window.addEventListener('keydown', (e) => {
     if (!state.gameStarted) {
         state.gameStarted = true;
         dom.intro.style.opacity = '0';
         setTimeout(() => dom.intro.style.display = 'none', 500);
-        return; // 开始那一帧不注册任何按键，避免触发游戏动作
+        return;
     }
     if (e.code === 'Space' && !state.spacePressed) {
         state.spacePressed = true;
-        state.shouldJump = true; // 仅在按下的瞬间设为 true
+        if (Math.abs(playerBody.velocity.y) < 0.1) {
+            state.shouldJump = true; // 落地 → 跳跃
+            airPressTime = 0;
+        } else {
+            tryStompDoublePress(); // 腾空 → 尝试双击重踩
+        }
     }
     state.keys[e.code] = true;
 });
 window.addEventListener('keyup', (e) => {
-    if (e.code === 'Space') {
-        state.spacePressed = false;
-    }
-    if (e.code === 'KeyS' || e.code === 'ArrowDown') {
-        state.stompLocked = false; // 松开重踩键才解锁，允许下一次重踩
-    }
+    if (e.code === 'Space') state.spacePressed = false;
     state.keys[e.code] = false;
 });
 
@@ -290,12 +310,11 @@ document.addEventListener('touchstart', (e) => {
         setTimeout(() => dom.intro.style.display = 'none', 500);
         return;
     }
-    // 跳跃与重踩条件天然互斥，物理状态决定哪个生效，无需计时器
-    state.shouldJump = true; // 落地时有效（游戏循环中有 velocity.y ≈ 0 守卫）
-    if (Math.abs(playerBody.velocity.y) > 0.1 && !state.isStomping && !state.stompLocked) {
-        Body.setVelocity(playerBody, { x: 0, y: 25 }); // 下落时有效
-        state.isStomping = true;
-        dom.player.classList.add('stomping');
+    if (Math.abs(playerBody.velocity.y) < 0.1) {
+        state.shouldJump = true; // 落地 → 跳跃，零延迟
+        airPressTime = 0;
+    } else {
+        tryStompDoublePress(); // 腾空 → 尝试双击重踩
     }
 }, { passive: false });
 
@@ -327,18 +346,11 @@ function gameLoop() {
         state.shouldJump = false; // 消费掉这次跳跃指令，防止连跳
     }
 
-    // C. 重踩 (Stomp) - 新增机制
-    if (state.keys['KeyS'] || state.keys['ArrowDown']) {
-        // 只有在空中且没有正在重踩时触发
-        if (Math.abs(playerBody.velocity.y) > 0.1 && !state.isStomping && !state.stompLocked) {
-            Body.setVelocity(playerBody, { x: 0, y: 25 }); // 极速下坠
-            state.isStomping = true;
-            dom.player.classList.add('stomping'); // 添加视觉拖影
-        }
-    } else if (Math.abs(playerBody.velocity.y) < 0.1) {
-        // 落地后恢复状态
+    // C. 落地后重置重踩状态
+    if (Math.abs(playerBody.velocity.y) < 0.1) {
         state.isStomping = false;
-        state.stompLocked = false; // 落地即解锁（覆盖触屏路径，无需等待抬键）
+        state.stompLocked = false;
+        airPressTime = 0;
         dom.player.classList.remove('stomping');
     }
 
