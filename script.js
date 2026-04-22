@@ -284,8 +284,7 @@ window.addEventListener('keyup', (e) => {
 // 触屏支持 (Mobile Touch)
 // ==========================================
 let lastTapTime = 0;
-let tapTimer = null;
-const DOUBLE_TAP_MS = 280;
+const SECOND_TAP_MS = 400;
 
 document.addEventListener('touchstart', (e) => {
     e.preventDefault();
@@ -296,23 +295,20 @@ document.addEventListener('touchstart', (e) => {
         return;
     }
     const now = Date.now();
-    if (now - lastTapTime < DOUBLE_TAP_MS) {
-        // 双击 → 重踩（或跳跃后排队重踩）
-        clearTimeout(tapTimer);
+    if (now - lastTapTime < SECOND_TAP_MS) {
+        // 第二下点击 → 重踩
         lastTapTime = 0;
         if (playerBody.velocity.y > 0.5 && !state.isStomping && !state.stompLocked) {
             Body.setVelocity(playerBody, { x: 0, y: 25 });
             state.isStomping = true;
             dom.player.classList.add('stomping');
         } else if (!state.stompLocked) {
-            // 在地面或上升中：先跳，落下时自动重踩
-            state.shouldJump = true;
-            state.stompQueued = true;
+            state.stompQueued = true; // 还在上升中，排队等下落时触发
         }
     } else {
-        // 单击 → 跳跃（等待确认不是双击的第一下）
+        // 第一下点击 → 立即跳跃，无延迟
         lastTapTime = now;
-        tapTimer = setTimeout(() => { state.shouldJump = true; }, DOUBLE_TAP_MS);
+        state.shouldJump = true;
     }
 }, { passive: false });
 
