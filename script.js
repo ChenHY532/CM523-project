@@ -2,15 +2,55 @@
 // 1. 数据源与配置 (Data & Config)
 // ==========================================
 
-const NEWS_SOURCE = [
+const FAKE_NEWS = [
+    { cat: 'UNKNOWN', title: "ALIENS LAND IN NEW YORK", summary: "Trust me bro, I saw it on TikTok.", color: "#ff0000", isFake: true },
+    { cat: 'AD', title: "EARN $5000 A DAY FROM HOME", summary: "Click here to discover the secret the government is hiding from you.", color: "#ff0000", isFake: true }
+];
+
+const REAL_NEWS_FALLBACK = [
     { cat: 'ECONOMY', title: "MARKET VOLATILITY SPIKES", summary: "Crypto assets plummeted 20% overnight following new regulatory announcements.", color: "#ffa502", isFake: false },
     { cat: 'ENV', title: "ICE SHELF COLLAPSE IMMINENT", summary: "Satellite imagery confirms the structural failure of the western shelf is accelerating.", color: "#ffffff", isFake: false },
     { cat: 'TECH', title: "AI ACHIEVES NEW REASONING", summary: "Latest benchmark tests show synthetic intelligence surpassing human capabilities.", color: "#2ed573", isFake: false },
     { cat: 'POLITICS', title: "GLOBAL SUMMIT ENDS IN SILENCE", summary: "Leaders failed to reach a consensus, leaving the future uncertain.", color: "#a29bfe", isFake: false },
-    // 假新闻数据 (isFake: true)
-    { cat: 'UNKNOWN', title: "ALIENS LAND IN NEW YORK", summary: "Trust me bro, I saw it on TikTok.", color: "#ff0000", isFake: true },
-    { cat: 'AD', title: "EARN $5000 A DAY FROM HOME", summary: "Click here to discover the secret the government is hiding from you.", color: "#ff0000", isFake: true }
 ];
+
+let NEWS_SOURCE = [...REAL_NEWS_FALLBACK, ...FAKE_NEWS];
+
+const RSS_FEEDS = [
+    { cat: 'ECONOMY', color: '#ffa502', url: 'https://feeds.bbci.co.uk/news/business/rss.xml' },
+    { cat: 'ENV',     color: '#ffffff', url: 'https://feeds.bbci.co.uk/news/science_and_environment/rss.xml' },
+    { cat: 'TECH',    color: '#2ed573', url: 'https://feeds.bbci.co.uk/news/technology/rss.xml' },
+    { cat: 'POLITICS',color: '#a29bfe', url: 'https://feeds.bbci.co.uk/news/politics/rss.xml' },
+];
+
+function stripHtml(str) {
+    return str.replace(/<[^>]*>/g, '').trim();
+}
+
+async function loadNews() {
+    const results = await Promise.all(RSS_FEEDS.map(feed =>
+        fetch(`https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(feed.url)}`)
+            .then(r => r.json())
+            .then(data => {
+                if (data.status !== 'ok') return [];
+                return data.items.map(item => {
+                    const summary = stripHtml(item.description);
+                    return {
+                        cat: feed.cat,
+                        title: item.title.toUpperCase(),
+                        summary: summary.length > 150 ? summary.slice(0, 147) + '...' : summary,
+                        color: feed.color,
+                        isFake: false
+                    };
+                });
+            })
+            .catch(() => [])
+    ));
+    const realNews = results.flat().filter(n => n.title && n.summary);
+    if (realNews.length > 0) NEWS_SOURCE = [...realNews, ...FAKE_NEWS];
+}
+
+loadNews();
 
 
 const state = {
