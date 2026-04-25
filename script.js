@@ -56,7 +56,7 @@ loadNews();
 const state = {
     platforms: [],
     lastX: 100,
-    lastY: 600,
+    lastY: window.innerWidth < 600 ? 400 : 600,
     keys: {},
     gameStarted: false,
     isStomping: false,   // 记录是否正在重踩
@@ -151,18 +151,23 @@ function generatePlatform(x, y, isStart = false, isFake = null) {
 }
 
 // 初始生成一段地形
-generatePlatform(200, 600, true);
+generatePlatform(200, window.innerWidth < 600 ? 400 : 600, true);
 for(let i=0; i<6; i++) extendMap();
 
 function extendMap() {
     const gap = 250 + Math.random() * 220;
     const isFake = Math.random() < 0.2;
 
-    const targetY = 400 + Math.random() * 350; // 目标落在 400-750，整体偏下
+    const mobile = window.innerWidth < 600;
+    const targetY = mobile
+        ? 250 + Math.random() * 300  // 手机：250-550，整体靠上
+        : 400 + Math.random() * 350; // 桌面：400-750
     const maxUp   = isFake ? 50 : 100;
     const maxDown = 320;
     const rawY = Math.max(state.lastY - maxUp, Math.min(targetY, state.lastY + maxDown));
-    const nextY = Math.max(300, Math.min(rawY, 750));
+    const nextY = mobile
+        ? Math.max(180, Math.min(rawY, 580))
+        : Math.max(300, Math.min(rawY, 750));
     let nextX = state.lastX + gap + 200;
 
     const p = generatePlatform(nextX, nextY, false, isFake);
