@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>About — Ephemeral Feeds</title>
+    <style>
+        :root {
+            --bg: #000;
+            --text: #fff;
+            --muted: #444;
+            --dimmed: #888;
+            --accent: #ffa502;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            background: var(--bg);
+            color: var(--text);
+            font-family: 'Helvetica Neue', Helvetica, sans-serif;
+            min-height: 100vh;
+        }
+
+        /* ── Navigation ── */
+        nav {
+            position: fixed;
+            top: 0; left: 0; right: 0;
+            padding: 22px 44px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 100;
+            background: linear-gradient(to bottom, #000 60%, transparent);
+        }
+
+        .nav-logo {
+            font-family: monospace;
+            font-size: 0.75rem;
+            letter-spacing: 0.25em;
+            color: var(--muted);
+            text-transform: uppercase;
+        }
+
+        nav a {
+            font-family: monospace;
+            font-size: 0.75rem;
+            letter-spacing: 0.2em;
+            text-transform: uppercase;
+            color: var(--muted);
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+
+        nav a:hover { color: var(--text); }
+
+        /* ── Main layout ── */
+        main {
+            max-width: 700px;
+            margin: 0 auto;
+            padding: 160px 44px 140px;
+        }
+
+        /* ── Title block ── */
+        .title-block {
+            margin-bottom: 100px;
+        }
+
+        h1 {
+            font-size: clamp(3rem, 8vw, 5.5rem);
+            font-weight: 900;
+            line-height: 0.92;
+            letter-spacing: -0.03em;
+            text-transform: uppercase;
+            margin-bottom: 1rem;
+        }
+
+        .zh-title {
+            font-family: monospace;
+            font-size: 0.9rem;
+            color: var(--muted);
+            letter-spacing: 0.4em;
+            margin-bottom: 2.5rem;
+        }
+
+        .meta-line {
+            font-family: monospace;
+            font-size: 0.85rem;
+            color: #666;
+            letter-spacing: 0.15em;
+            text-transform: uppercase;
+            border-top: 1px solid #222;
+            padding-top: 1.5rem;
+        }
+
+        /* ── Statement sections ── */
+        .section {
+            margin-bottom: 2.5rem;
+        }
+
+        .label {
+            font-family: monospace;
+            font-size: 0.82rem;
+            color: #777;
+            letter-spacing: 0.25em;
+            text-transform: uppercase;
+            margin-bottom: 1.2rem;
+        }
+
+        .lead {
+            font-size: clamp(1.25rem, 3vw, 1.6rem);
+            font-weight: 700;
+            line-height: 1.45;
+            color: var(--text);
+        }
+
+        .body-text {
+            font-size: 1rem;
+            line-height: 1.95;
+            color: var(--dimmed);
+        }
+
+        .body-text + .body-text {
+            margin-top: 1.4rem;
+        }
+
+        .pull-quote {
+            border-left: 2px solid var(--accent);
+            padding: 0.2rem 0 0.2rem 1.6rem;
+            margin: 3.5rem 0;
+            font-size: 1.05rem;
+            line-height: 1.7;
+            color: #ccc;
+        }
+
+        /* ── Divider ── */
+        hr {
+            border: none;
+            border-top: 1px solid #111;
+            margin: 4rem 0;
+        }
+
+        /* ── Play link ── */
+        .play-link {
+            display: inline-block;
+            margin-top: 60px;
+            font-family: monospace;
+            font-size: 0.8rem;
+            letter-spacing: 0.25em;
+            text-transform: uppercase;
+            color: var(--muted);
+            text-decoration: none;
+            border: 1px solid #1c1c1c;
+            padding: 14px 32px;
+            transition: color 0.2s, border-color 0.2s;
+        }
+
+        .play-link:hover {
+            color: var(--text);
+            border-color: #555;
+        }
+
+        /* ── Mobile ── */
+        @media (max-width: 600px) {
+            nav { padding: 18px 24px; }
+            main { padding: 120px 24px 100px; }
+        }
+    </style>
+</head>
+<body>
+
+    <nav>
+        <span class="nav-logo">Ephemeral Feeds</span>
+        <a href="index.html">Play &rarr;</a>
+    </nav>
+
+    <main>
+
+        <div class="title-block">
+            <h1>Ephemeral<br>Feeds</h1>
+            <p class="zh-title">瞬 息 流</p>
+            <p class="meta-line">Interactive Web Design &nbsp;&mdash;&nbsp; CM523 &nbsp;&mdash;&nbsp; 2025</p>
+        </div>
+
+        <div class="section">
+            <p class="label">01 &mdash; Context</p>
+            <p class="lead">In today's digital world, news has become a fleeting commodity.</p>
+        </div>
+
+        <div class="section">
+            <p class="body-text">We are immersed in a flood of information, with countless headlines passing by like fleeting clouds. We click, browse, and then forget them within seconds. This culture has led to the extreme devaluation of information and the fragmentation of attention.</p>
+        </div>
+
+        <hr>
+
+        <div class="section">
+            <p class="label">02 &mdash; Fake News &amp; Advertising</p>
+            <p class="body-text">Within this flood, not all content is created equal. Fake news exploits the very speed of digital media — it spreads faster than corrections can follow, and by the time a story is debunked, the damage is already done. Its power lies not in sustained belief, but in the brief moment of exposure: a headline glimpsed, a claim half-remembered, a doubt quietly planted.</p>
+            <p class="body-text">Advertising operates through the same logic. Sponsored content, native ads, and algorithmic promotion blur the boundary between information and manipulation. Both fake news and advertising are designed to travel fast, demand little, and leave a trace — thriving in exactly the kind of fractured, high-speed attention economy we now inhabit.</p>
+
+            <div class="pull-quote">
+                In the attention economy, truth and fabrication compete on the same terms: speed, emotion, and shareability.
+            </div>
+        </div>
+
+        <hr>
+
+        <div class="section">
+            <p class="label">03 &mdash; Intent</p>
+            <p class="body-text">This project aims to critique and visualize this phenomenon through web interaction design — translating the abstract experience of information overload into something physical, immediate, and felt in the body.</p>
+        </div>
+
+        <hr>
+
+        <div class="section">
+            <p class="label">04 &mdash; Mechanic</p>
+            <p class="body-text">The user controls a character running across constantly generating and collapsing blocks of news. Each platform displays a real headline pulled from live news feeds. It can only support the character's weight for a brief moment; once the character leaves, the platform immediately falls and is destroyed.</p>
+            <p class="body-text">Fake news and advertisements appear as glitching, unstable platforms. Passively landing on them corrupts the run — only a deliberate, effortful stomp can destroy them. This mirrors the asymmetry of critical thinking in practice: passive consumption is the default; active skepticism requires intention.</p>
+            <p class="body-text">This symbolizes the fate of modern news — disposable stepping stones, consumed and then discarded without a second thought.</p>
+        </div>
+
+        <a class="play-link" href="index.html">&larr; Play the game</a>
+
+    </main>
+
+</body>
+</html>

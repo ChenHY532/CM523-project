@@ -56,6 +56,7 @@ loadNews();
 const state = {
     platforms: [],
     lastX: 100,
+    lastY: 600,
     keys: {},
     gameStarted: false,
     isStomping: false,   // 记录是否正在重踩
@@ -63,7 +64,8 @@ const state = {
     isRespawning: false, // 重生下落阶段，禁止自动前进
     spacePressed: false,
     shouldJump: false,
-    score: 0
+    score: 8,
+    gameOver: false
 };
 
 // DOM 元素缓存
@@ -104,11 +106,10 @@ Composite.add(world, playerBody);
 // ==========================================
 // 3. 核心机制：程序化生成 (Procedural Generation)
 // ==========================================
-function generatePlatform(x, y, isStart = false) {
-    // 随机获取新闻，20%概率生成假新闻
-    const isFakeRoll = Math.random() < 0.2 && !isStart;
+function generatePlatform(x, y, isStart = false, isFake = null) {
+    const isFakeRoll = isStart ? false : (isFake !== null ? isFake : Math.random() < 0.2);
     let data;
-    
+
     if (isStart) {
         data = { cat: "SYSTEM", title: "BEGIN THE RUN", summary: "Stay moving. Smash the lies.", color: "#fff", isFake: false };
     } else if (isFakeRoll) {
@@ -150,17 +151,23 @@ function generatePlatform(x, y, isStart = false) {
 }
 
 // 初始生成一段地形
-generatePlatform(200, 500, true);
+generatePlatform(200, 600, true);
 for(let i=0; i<6; i++) extendMap();
 
 function extendMap() {
-    const gap = 150 + Math.random() * 200; // X轴间距
-    const yChange = (Math.random() * 300) - 150; // Y轴高低差
-    let nextY = Math.max(200, Math.min(500 + yChange, 700)); // 限制在可视范围内
+    const gap = 250 + Math.random() * 220;
+    const isFake = Math.random() < 0.2;
+
+    const targetY = 400 + Math.random() * 350; // 目标落在 400-750，整体偏下
+    const maxUp   = isFake ? 50 : 100;
+    const maxDown = 320;
+    const rawY = Math.max(state.lastY - maxUp, Math.min(targetY, state.lastY + maxDown));
+    const nextY = Math.max(300, Math.min(rawY, 750));
     let nextX = state.lastX + gap + 200;
 
-    const p = generatePlatform(nextX, nextY);
+    const p = generatePlatform(nextX, nextY, false, isFake);
     state.lastX = p.x + (p.width / 2);
+    state.lastY = nextY;
 }
 
 // ==========================================
@@ -205,11 +212,12 @@ Events.on(engine, 'collisionStart', (event) => {
                     // 惩罚：轻信假新闻，直接崩塌
                     triggerCorruption(pObj);
                 } else {
-                    // 正常：阅读新闻
+                    // 正常：阅读新闻，落地即加分
                     pObj.active = true;
                     pObj.dom.classList.add('active');
                     pObj.dom.style.backgroundColor = pObj.body.plugin.data.color;
                     updateBackground(other.plugin.data);
+                    addScore(1);
                 }
             }
         }
@@ -231,17 +239,21 @@ Events.on(engine, 'collisionEnd', (event) => {
 });
 
 // --- 评分系统 ---
-function addScore(delta) {
-    state.score += delta;
-    dom.scoreEl.textContent = state.score;
-
+function showScorePopup(delta, x, y) {
     const popup = document.createElement('div');
     popup.className = 'score-popup';
     popup.textContent = delta > 0 ? `+${delta}` : `${delta}`;
-    popup.style.color = delta < 0 ? '#ff4757' : delta >= 2 ? '#ffa502' : '#ffffff';
-    popup.style.transform = `translate(${playerBody.position.x - 15}px, ${playerBody.position.y - 50}px)`;
+    popup.style.color = delta < 0 ? '#ff4757' : delta >= 3 ? '#ffa502' : '#2ed573';
+    popup.style.left = `${x - 15}px`;
+    popup.style.top = `${y - 40}px`;
     dom.world.appendChild(popup);
-    setTimeout(() => popup.remove(), 800);
+    setTimeout(() => popup.remove(), 900);
+}
+
+function addScore(delta) {
+    state.score += delta;
+    dom.scoreEl.textContent = state.score;
+    showScorePopup(delta, playerBody.position.x, playerBody.position.y);
 }
 
 // --- 视觉更新函数 ---
@@ -264,7 +276,7 @@ function triggerShatter(pObj) {
     Composite.remove(world, pObj.body); // 移除物理实体
     pObj.dom.classList.add('shatter');  // 触发碎裂 CSS
     setTimeout(() => pObj.dom.remove(), 500);
-    addScore(2); // 踩碎假新闻 +2
+    addScore(4); // 踩碎假新闻 +4
 }
 
 function triggerCorruption(pObj) {
@@ -276,7 +288,6 @@ function triggerCorruption(pObj) {
 
 function triggerDecay(pObj) {
     if (pObj.destroyed) return;
-    if (pObj.active) addScore(1); // 跳过真新闻平台 +1
     pObj.destroyed = true;
     pObj.active = false;
     
@@ -361,11 +372,29 @@ document.addEventListener('touchstart', (e) => {
 const runner = Runner.create();
 Runner.run(runner, engine);
 
+function triggerGameOver() {
+    state.gameOver = true;
+    const overlay = document.createElement('div');
+    overlay.id = 'game-over-overlay';
+    overlay.innerHTML = `
+        <h1>GAME OVER</h1>
+        <p class="go-subtitle">YOUR CREDIBILITY COLLAPSED</p>
+        <p class="go-restart">PRESS ANY KEY TO RESTART</p>
+    `;
+    document.body.appendChild(overlay);
+    setTimeout(() => {
+        const restart = () => location.reload();
+        window.addEventListener('keydown', restart, { once: true });
+        document.addEventListener('touchstart', restart, { once: true });
+    }, 600);
+}
+
 function gameLoop() {
     if (!state.gameStarted) {
         requestAnimationFrame(gameLoop);
         return;
     }
+    if (state.gameOver) return;
 
     const speed = 7;
     const jumpForce = 14;
@@ -419,14 +448,21 @@ function gameLoop() {
 
     // 掉落重生
     if (playerBody.position.y > 1000) {
+        const penalty = Math.floor(state.score * 2 / 3) + 2;
+        state.score -= penalty;
+        dom.scoreEl.textContent = state.score;
+
+        if (state.score < 0) {
+            triggerGameOver();
+            return;
+        }
+
         const safeP = state.platforms.find(p => !p.destroyed && p.body.position.x > px);
-        const respawnX = safeP ? safeP.body.position.x : px - 300;
-        
+        const respawnX = safeP ? safeP.body.position.x : px + 200;
         Body.setPosition(playerBody, { x: respawnX, y: 0 });
         Body.setVelocity(playerBody, { x: 0, y: 0 });
+        showScorePopup(-penalty, respawnX, 80); // 在复活点顶部显示，随玩家下落可见
         state.isRespawning = true;
-        addScore(-2); // 掉落扣 2 分
-        
         document.body.classList.remove('reading-mode');
         state.isStomping = false;
     }

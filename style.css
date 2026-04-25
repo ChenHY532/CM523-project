@@ -224,18 +224,90 @@ body.reading-mode #background-layer {
 /* 得分浮动弹出 */
 .score-popup {
     position: absolute;
-    font-family: monospace;
-    font-size: 1.1rem;
-    font-weight: 700;
+    font-family: 'Helvetica Neue', Helvetica, sans-serif;
+    font-size: 1.3rem;
+    font-weight: 900;
     pointer-events: none;
-    animation: score-float 0.8s ease-out forwards;
+    animation: score-float 0.9s ease-out forwards;
     z-index: 50;
+    white-space: nowrap;
 }
 
 @keyframes score-float {
-    0%   { opacity: 1; transform: translateY(0); }
-    100% { opacity: 0; transform: translateY(-60px); }
+    0%   { opacity: 1; transform: translateY(0) scale(1.1); }
+    20%  { transform: translateY(-12px) scale(1.2); }
+    100% { opacity: 0; transform: translateY(-70px) scale(0.9); }
 }
+
+/* 游戏结束遮罩 */
+#game-over-overlay {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100vw; height: 100vh;
+    background: rgba(0, 0, 0, 0.88);
+    z-index: 2000;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    animation: fade-in 0.5s ease forwards;
+}
+
+#game-over-overlay h1 {
+    font-size: 4rem;
+    font-weight: 900;
+    color: #ff4757;
+    letter-spacing: 0.1em;
+    margin: 0 0 1rem;
+    text-transform: uppercase;
+}
+
+#game-over-overlay .go-subtitle {
+    font-family: monospace;
+    font-size: 1rem;
+    color: #666;
+    letter-spacing: 0.25em;
+    margin: 0 0 2.5rem;
+    text-transform: uppercase;
+}
+
+#game-over-overlay .go-restart {
+    font-family: monospace;
+    font-size: 0.85rem;
+    color: #444;
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+    animation: blink 1.2s infinite;
+}
+
+@keyframes fade-in {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+}
+
+@keyframes blink {
+    0%, 100% { opacity: 1; }
+    50%       { opacity: 0.2; }
+}
+
+/* About 页跳转链接 */
+#about-link {
+    position: fixed;
+    top: 20px;
+    right: 30px;
+    font-family: monospace;
+    font-size: 0.8rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: #666;
+    text-decoration: none;
+    z-index: 500;
+    transition: color 0.2s;
+    pointer-events: auto;
+}
+
+#about-link:hover { color: #fff; }
 
 /* ==========================================
    手机端适配 (Mobile)
