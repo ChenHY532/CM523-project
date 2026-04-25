@@ -359,6 +359,7 @@ window.addEventListener('keyup', (e) => {
 // 触屏支持 (Mobile Touch)
 // ==========================================
 document.addEventListener('touchstart', (e) => {
+    if (e.target.id === 'about-link') return;
     e.preventDefault();
     if (!state.gameStarted) {
         state.gameStarted = true;
