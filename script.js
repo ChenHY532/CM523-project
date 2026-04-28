@@ -60,7 +60,7 @@ const state = {
     keys: {},
     gameStarted: false,
     isStomping: false,   // 记录是否正在重踩
-    stompLocked: false,  // 踩碎后锁定，松开 S/↓ 才解锁，防止弹跳中途意外重触
+    stompLocked: false,  // 踩碎后锁定
     isRespawning: false, // 重生下落阶段，禁止自动前进
     spacePressed: false,
     shouldJump: false,
@@ -80,9 +80,6 @@ const dom = {
     scoreEl: document.getElementById('score-display')
 };
 
-// ==========================================
-// 2. 物理引擎初始化 (Matter.js Setup)
-// ==========================================
 const Engine = Matter.Engine,
       Runner = Matter.Runner,
       Bodies = Matter.Bodies,
@@ -103,9 +100,6 @@ const playerBody = Bodies.circle(200, 300, 20, {
 });
 Composite.add(world, playerBody);
 
-// ==========================================
-// 3. 核心机制：程序化生成 (Procedural Generation)
-// ==========================================
 function generatePlatform(x, y, isStart = false, isFake = null) {
     const isFakeRoll = isStart ? false : (isFake !== null ? isFake : Math.random() < 0.2);
     let data;
@@ -175,9 +169,6 @@ function extendMap() {
     state.lastY = nextY;
 }
 
-// ==========================================
-// 4. 交互与碰撞逻辑 (Interaction & Collisions)
-// ==========================================
 Events.on(engine, 'collisionStart', (event) => {
     event.pairs.forEach(pair => {
         const other = pair.bodyA.label === 'player' ? pair.bodyB : pair.bodyA;
@@ -189,7 +180,7 @@ Events.on(engine, 'collisionStart', (event) => {
 
             const isFakeNews = pObj.body.plugin.data.isFake;
 
-            // 机制 A：玩家正在执行”重踩”
+            // 玩家正在执行”重踩”
             if (state.isStomping) {
                 if (isFakeNews) {
                     // 成功：踩碎假新闻
@@ -211,7 +202,7 @@ Events.on(engine, 'collisionStart', (event) => {
                     dom.player.classList.remove('stomping');
                 }
             } 
-            // 机制 B：玩家正常降落
+            // 玩家正常降落
             else {
                 if (isFakeNews) {
                     // 惩罚：轻信假新闻，直接崩塌
@@ -243,7 +234,7 @@ Events.on(engine, 'collisionEnd', (event) => {
     });
 });
 
-// --- 评分系统 ---
+// 评分系统
 function showScorePopup(delta, x, y) {
     const popup = document.createElement('div');
     popup.className = 'score-popup';
@@ -261,7 +252,7 @@ function addScore(delta) {
     showScorePopup(delta, playerBody.position.x, playerBody.position.y);
 }
 
-// --- 视觉更新函数 ---
+// 视觉更新函数
 function updateBackground(data) {
     document.body.classList.add('reading-mode');
     
@@ -309,9 +300,6 @@ function triggerDecay(pObj) {
     }, 1000);
 }
 
-// ==========================================
-// 5. 输入处理与主循环 (Input & Game Loop)
-// ==========================================
 // 腾空双击（键盘/触屏共用）：记录腾空中第一次按下的时间
 let airPressTime = 0;
 const AIR_DOUBLE_MS = 350;
@@ -355,9 +343,6 @@ window.addEventListener('keyup', (e) => {
     state.keys[e.code] = false;
 });
 
-// ==========================================
-// 触屏支持 (Mobile Touch)
-// ==========================================
 document.addEventListener('touchstart', (e) => {
     if (e.target.id === 'about-link') return;
     e.preventDefault();
@@ -405,14 +390,14 @@ function gameLoop() {
     const speed = 7;
     const jumpForce = 14;
 
-    // A. 移动：默认自动向右，左键可反向；重生下落阶段锁定 x 不移动
+    // 移动：默认自动向右，左键可反向；重生下落阶段锁定 x 不移动
     // 只直接写 x 轴，不调用 setVelocity，避免同时覆盖 positionPrev.y 干扰 y 轴 Verlet 积分
     if (!state.isRespawning) {
         playerBody.velocity.x = speed;
         playerBody.positionPrev.x = playerBody.position.x - speed;
     }
 
-    // B. 跳跃
+    // 跳跃
     if (state.shouldJump) {
         // 执行跳跃判定
         if (Math.abs(playerBody.velocity.y) < 0.1) {
@@ -421,7 +406,7 @@ function gameLoop() {
         state.shouldJump = false; // 消费掉这次跳跃指令，防止连跳
     }
 
-    // C. 落地后重置重踩状态
+    // 落地后重置重踩状态
     if (Math.abs(playerBody.velocity.y) < 0.1) {
         state.isStomping = false;
         state.stompLocked = false;
